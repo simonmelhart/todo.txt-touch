@@ -34,6 +34,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.todotxt.todotxttouch.remote.RemoteClientManager;
+import com.todotxt.todotxttouch.remote.RemoteConflictException;
 import com.todotxt.todotxttouch.task.TaskBag;
 import com.todotxt.todotxttouch.task.TaskBagFactory;
 import com.todotxt.todotxttouch.util.Util;
@@ -57,7 +58,8 @@ public class TodoApplication extends Application {
 		this.taskBag = TaskBagFactory.getTaskBag(this, m_prefs);
 
 		IntentFilter intentFilter = new IntentFilter();
-		intentFilter.addAction(Constants.INTENT_GO_OFFLINE);
+		intentFilter.addAction(Constants.INTENT_SET_MANUAL);
+		intentFilter.addAction(Constants.INTENT_START_SYNC_WITH_REMOTE);
 		intentFilter.addAction(Constants.INTENT_START_SYNC_TO_REMOTE);
 		intentFilter.addAction(Constants.INTENT_START_SYNC_FROM_REMOTE);
 		intentFilter.addAction(Constants.INTENT_ASYNC_FAILED);
@@ -80,19 +82,40 @@ public class TodoApplication extends Application {
 	}
 
 	/**
+	 * If we previously tried to push and failed, then attempt to push again now.
+	 * Otherwise, pull.
+	 */
+	private void syncWithRemote(boolean force) {
+		if (needToPush()) {
+			Log.d(TAG, "needToPush = true; pushing.");
+			pushToRemote(force, false);
+		} else {
+			Log.d(TAG, "needToPush = false; pulling.");
+			pullFromRemote(force);
+		}
+	}
+	
+	/**
 	 * Check network status, then push.
 	 */
-	private void pushToRemote(boolean force) {
-		if (!force && isOfflineMode()) {
-			Log.d(TAG, "Working offline, don't push now");
+	private void pushToRemote(boolean force, boolean overwrite) {
+		setNeedToPush(true);
+		if (!force && isManualMode()) {
+			Log.i(TAG, "Working offline, don't push now");
+		} else if (getRemoteClientManager().getRemoteClient().isAvailable()
+				&& !m_pulling) {
+			Log.i(TAG, "Working online; should push if file revisions match");
+			backgroundPushToRemote(overwrite);
+		} else if (m_pulling) {
+			Log.d(TAG, "app is pulling right now. don't start push."); // TODO
+																		// remove
+																		// after
+																		// AsyncTask
+																		// bug
+																		// fixed
 		} else {
-			if (!getRemoteClientManager().getRemoteClient().isAvailable()) {
-				Log.d(TAG, "Pushing while online w/o network; go offline");
-				sendBroadcast(new Intent(Constants.INTENT_GO_OFFLINE));
-			} else {
-				Log.i(TAG, "Working online; should push after change");
-				backgroundPushToRemote();
-			}
+			Log.i(TAG, "Not connected, don't push now");
+			showToast(R.string.toast_notconnected);
 		}
 	}
 
@@ -100,16 +123,27 @@ public class TodoApplication extends Application {
 	 * Check network status, then pull.
 	 */
 	private void pullFromRemote(boolean force) {
-		if (!force && isOfflineMode()) {
-			Log.d(TAG, "Working offline, don't pull now");
+		if (!force && isManualMode()) {
+			Log.i(TAG, "Working offline, don't pull now");
+			return;
+		}
+		
+		setNeedToPush(false);
+		
+		if (getRemoteClientManager().getRemoteClient().isAvailable()
+				&& !m_pushing) {
+			Log.i(TAG, "Working online; should pull file");
+			backgroundPullFromRemote();
+		} else if (m_pushing) {
+			Log.d(TAG, "app is pushing right now. don't start pull."); // TODO
+																		// remove
+																		// after
+																		// AsyncTask
+																		// bug
+																		// fixed
 		} else {
-			if (!getRemoteClientManager().getRemoteClient().isAvailable()) {
-				Log.d(TAG, "Pushing while online w/o network; go offline");
-				sendBroadcast(new Intent(Constants.INTENT_GO_OFFLINE));
-			} else {
-				Log.i(TAG, "Working online; should puull after change");
-				backgroundPullFromRemote();
-			}
+			Log.i(TAG, "Not connected, don't pull now");
+			showToast(R.string.toast_notconnected);
 		}
 	}
 
@@ -121,18 +155,26 @@ public class TodoApplication extends Application {
 		return remoteClientManager;
 	}
 
-	public boolean isOfflineMode() {
-		return m_prefs.getBoolean("workofflinepref", false);
+	public boolean isManualMode() {
+		return m_prefs.getBoolean(Constants.PREF_MANUAL_MODE, false);
+	}
+
+	public boolean needToPush() {
+		return m_prefs.getBoolean(Constants.PREF_NEED_TO_PUSH, false);
+	}
+
+	public void setNeedToPush(boolean needToPush) {
+		Editor editor = m_prefs.edit();
+		editor.putBoolean(Constants.PREF_NEED_TO_PUSH, needToPush);
+		editor.commit();
 	}
 
 	public static Context getAppContetxt() {
 		return appContext;
 	}
 
-	public void setOfflineMode() {
-		Editor editor = m_prefs.edit();
-		editor.putBoolean("workofflinepref", true);
-		editor.commit();
+	public void showToast(int resid) {
+		Util.showToastLong(this, resid);
 	}
 
 	public void showToast(String string) {
@@ -142,33 +184,44 @@ public class TodoApplication extends Application {
 	/**
 	 * Do asynchronous push with gui changes. Do availability check first.
 	 */
-	void backgroundPushToRemote() {
+	void backgroundPushToRemote(final boolean overwrite) {
 		if (getRemoteClientManager().getRemoteClient().isAuthenticated()) {
 			m_pushing = true;
-			m_pulling = false;
 			updateSyncUI();
 
-			new AsyncTask<Void, Void, Boolean>() {
+			new AsyncTask<Void, Void, Integer>() {
+				static final int SUCCESS = 0;
+				static final int CONFLICT = 1;
+				static final int ERROR = 2;
 
 				@Override
-				protected Boolean doInBackground(Void... params) {
+				protected Integer doInBackground(Void... params) {
 					try {
 						Log.d(TAG, "start taskBag.pushToRemote");
-						taskBag.pushToRemote(true);
+						taskBag.pushToRemote(true, overwrite);
+					} catch (RemoteConflictException c) {
+						Log.e(TAG, c.getMessage());
+						return CONFLICT;
 					} catch (Exception e) {
 						Log.e(TAG, e.getMessage());
-						return false;
+						return ERROR;
 					}
-					return true;
+					return SUCCESS;
 				}
 
 				@Override
-				protected void onPostExecute(Boolean result) {
+				protected void onPostExecute(Integer result) {
 					Log.d(TAG, "post taskBag.pushToremote");
-					if (result) {
+					if (result == SUCCESS) {
 						Log.d(TAG, "taskBag.pushToRemote done");
 						m_pushing = false;
+						setNeedToPush(false);
 						updateSyncUI();
+						// Push is complete. Now do a pull in case the remote done.txt has changed.
+						pullFromRemote(true);
+					} else if (result == CONFLICT) {
+						// FIXME: need to know which file had conflict
+						sendBroadcast(new Intent(Constants.INTENT_SYNC_CONFLICT));
 					} else {
 						sendBroadcast(new Intent(Constants.INTENT_ASYNC_FAILED));
 					}
@@ -176,10 +229,12 @@ public class TodoApplication extends Application {
 				}
 
 			}.execute();
+
 		} else {
 			Log.e(TAG, "NOT AUTHENTICATED!");
 			showToast("NOT AUTHENTICATED!");
 		}
+
 	}
 
 	/**
@@ -234,9 +289,14 @@ public class TodoApplication extends Application {
 		public void onReceive(Context context, Intent intent) {
 			boolean force_sync = intent.getBooleanExtra(
 					Constants.EXTRA_FORCE_SYNC, false);
+			boolean overwrite = intent.getBooleanExtra(
+					Constants.EXTRA_OVERWRITE, false);
 			if (intent.getAction().equalsIgnoreCase(
+					Constants.INTENT_START_SYNC_WITH_REMOTE)) {
+				syncWithRemote(force_sync);
+			} else if (intent.getAction().equalsIgnoreCase(
 					Constants.INTENT_START_SYNC_TO_REMOTE)) {
-				pushToRemote(force_sync);
+				pushToRemote(force_sync, overwrite);
 			} else if (intent.getAction().equalsIgnoreCase(
 					Constants.INTENT_START_SYNC_FROM_REMOTE)) {
 				pullFromRemote(force_sync);
@@ -246,15 +306,6 @@ public class TodoApplication extends Application {
 				m_pulling = false;
 				m_pushing = false;
 				updateSyncUI();
-			} else if (intent.getAction().equalsIgnoreCase(
-					Constants.INTENT_GO_OFFLINE)) {
-				if (isOfflineMode()) {
-					showToast(getString(R.string.toast_notconnected));
-				} else {
-					setOfflineMode();
-					showToast(getString(R.string.toast_notconnected_switch_to_offline));
-				}
-
 			}
 		}
 	}

@@ -71,18 +71,24 @@ public class TodoApplicationTest extends ApplicationTestCase<TodoApplication> {
 		}
 	}
 
-	public void testsyncWithRemote() {
+	public void testSyncWithRemote() {
 		final TaskBagStub bag = new TaskBagStub();
 		setTaskBag(bag);
 
 		TodoApplication app = getApplication();
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
+
+		new Waiter() {
+			public boolean test() {
+				return bag.syncWithRemoteCalled == 1;
+			};
+		}.doWait();
 
 		assertEquals("Should have called syncWithRemote once", 1,
 				bag.syncWithRemoteCalled);
 	}
 
-	public void testsyncWithRemoteMultiple() {
+	public void testSyncWithRemoteMultiple() {
 		final TaskBagStub bag = new TaskBagStub();
 		setTaskBag(bag);
 
@@ -90,11 +96,17 @@ public class TodoApplicationTest extends ApplicationTestCase<TodoApplication> {
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
 
+		new Waiter() {
+			public boolean test() {
+				return bag.syncWithRemoteCalled == 1;
+			};
+		}.doWait();
+
 		assertEquals("Should have called syncWithRemote twice", 2,
 				bag.syncWithRemoteCalled);
 	}
 
-	public void testsyncWithRemoteMultipleDelayed() {
+	public void testSyncWithRemoteMultipleDelayed() {
 		final TaskBagStub bag = new TaskBagStub() {
 			@Override
 			public void syncWithRemote(boolean overridePreference,
@@ -125,11 +137,17 @@ public class TodoApplicationTest extends ApplicationTestCase<TodoApplication> {
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
 
+		new Waiter() {
+			public boolean test() {
+				return bag.syncWithRemoteCalled == 1;
+			};
+		}.doWait();
+
 		assertEquals("Should have called syncWithRemote twice", 2,
 				bag.syncWithRemoteCalled);
 	}
 
-	public void testsyncWithRemoteMultipleDelayedWithPull() {
+	public void testSyncWithRemoteMultipleDelayedWithPull() {
 		final TaskBagStub bag = new TaskBagStub() {
 			@Override
 			public void syncWithRemote(boolean overridePreference,
@@ -164,11 +182,18 @@ public class TodoApplicationTest extends ApplicationTestCase<TodoApplication> {
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
 
+		new Waiter() {
+			public boolean test() {
+				return bag.syncWithRemoteCalled == 1;
+			};
+		}.doWait();
+
 		assertEquals("Should have called syncWithRemote twice", 2,
 				bag.syncWithRemoteCalled);
+		// Remember that pull is called automatically after a successful push
 	}
 
-	public void testsyncWithRemoteMultipleDelayedThenPull() {
+	public void testSyncWithRemoteMultipleDelayedThenPull() {
 		final TaskBagStub bag = new TaskBagStub() {
 			@Override
 			public void syncWithRemote(boolean overridePreference,
@@ -198,6 +223,21 @@ public class TodoApplicationTest extends ApplicationTestCase<TodoApplication> {
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
 		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_TO_REMOTE));
+
+		new Waiter() {
+			public boolean test() {
+				return bag.syncWithRemoteCalled == 1;
+			};
+		}.doWait();
+
+		// This pull should be called
+		app.sendBroadcast(new Intent(Constants.INTENT_START_SYNC_FROM_REMOTE));
+
+		new Waiter() {
+			public boolean test() {
+				return bag.syncWithRemoteCalled == 2;
+			};
+		}.doWait();
 
 		assertEquals("Should have called syncWithRemote twice", 2,
 				bag.syncWithRemoteCalled);

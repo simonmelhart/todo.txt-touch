@@ -6,9 +6,9 @@ import android.preference.PreferenceManager;
 
 import com.todotxt.todotxttouch.TodoApplication;
 import com.todotxt.todotxttouch.remote.Client;
-import com.todotxt.todotxttouch.remote.PullTodoResult;
 import com.todotxt.todotxttouch.remote.RemoteClient;
 import com.todotxt.todotxttouch.remote.RemoteClientManager;
+import com.todotxt.todotxttouch.remote.SyncTodoResult;
 
 public class RemoteClientManagerStub extends RemoteClientManager {
 
@@ -68,15 +68,9 @@ public class RemoteClientManagerStub extends RemoteClientManager {
 		}
 
 		@Override
-		public PullTodoResult pullTodo() {
+		public SyncTodoResult syncTodo(File todoFile, File doneFile, boolean overwrite) {
 			// TODO Auto-generated method stub
 			return null;
-		}
-
-		@Override
-		public void pushTodo(File todoFile, File doneFile, boolean overwrite) {
-			// TODO Auto-generated method stub
-			
 		}
 
 		@Override

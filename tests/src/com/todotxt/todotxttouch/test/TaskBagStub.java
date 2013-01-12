@@ -78,30 +78,17 @@ public class TaskBagStub implements TaskBag {
 	}
 
 	@Override
-	public void pushToRemote(boolean overwrite) {
+	public void syncWithRemote(boolean overwrite) {
 		// TODO Auto-generated method stub
-		pushToRemote(false, overwrite);
+		syncWithRemote(false, overwrite);
 	}
 
 	@Override
-	public void pushToRemote(boolean overridePreference, boolean overwrite) {
+	public void syncWithRemote(boolean overridePreference, boolean overwrite) {
 		// TODO Auto-generated method stub
-		++pushToRemoteCalled;
+		++syncWithRemoteCalled;
 
 	}
-	public int pushToRemoteCalled = 0;
-
-	@Override
-	public void pullFromRemote() {
-		// TODO Auto-generated method stub
-		pullFromRemote(false);
-	}
-
-	@Override
-	public void pullFromRemote(boolean overridePreference) {
-		// TODO Auto-generated method stub
-		++pullFromRemoteCalled;
-	}
-	public int pullFromRemoteCalled = 0;
+	public int syncWithRemoteCalled = 0;
 
 }

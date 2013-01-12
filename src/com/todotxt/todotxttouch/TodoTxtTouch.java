@@ -822,7 +822,7 @@ public class TodoTxtTouch extends ListActivity implements
 							sendBroadcast(new Intent(
 									Constants.INTENT_START_SYNC_TO_REMOTE)
 									.putExtra(Constants.EXTRA_FORCE_SYNC, true));
-							// backgroundPushToRemote();
+							// backgroundsyncWithRemote();
 							showToast(getString(R.string.sync_upload_message));
 						}
 					});
@@ -850,7 +850,7 @@ public class TodoTxtTouch extends ListActivity implements
 									Constants.INTENT_START_SYNC_TO_REMOTE)
 									.putExtra(Constants.EXTRA_OVERWRITE, true)
 									.putExtra(Constants.EXTRA_FORCE_SYNC, true));
-							// backgroundPushToRemote();
+							// backgroundsyncWithRemote();
 							showToast(getString(R.string.sync_upload_message));
 						}
 					});

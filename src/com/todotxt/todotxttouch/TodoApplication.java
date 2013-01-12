@@ -99,7 +99,7 @@ public class TodoApplication extends Application {
 	private void syncWithRemote(boolean force) {
 		if (needToPush()) {
 			Log.d(TAG, "needToPush = true; pushing.");
-			pushToRemote(force, false);
+			syncWithRemote(force, false);
 		} else {
 			Log.d(TAG, "needToPush = false; pulling.");
 			pullFromRemote(force);
@@ -109,7 +109,7 @@ public class TodoApplication extends Application {
 	/**
 	 * Check network status, then sync.
 	 */
-	private void pushToRemote(boolean force, boolean overwrite) {
+	private void syncWithRemote(boolean force, boolean overwrite) {
 		pushQueue += 1;
 		setNeedToPush(true);
 		if (!force && isManualMode()) {
@@ -117,7 +117,7 @@ public class TodoApplication extends Application {
 		} else if (getRemoteClientManager().getRemoteClient().isAvailable()
 				&& !m_pulling) {
 			Log.i(TAG, "Working online; should push if file revisions match");
-			backgroundPushToRemote(overwrite);
+			backgroundsyncWithRemote(overwrite);
 		} else if (m_pulling) {
 			Log.d(TAG, "app is pulling right now. don't start push."); 
 		} else {
@@ -186,7 +186,7 @@ public class TodoApplication extends Application {
 	/**
 	 * Do asynchronous push with gui changes. Do availability check first.
 	 */
-	void backgroundPushToRemote(final boolean overwrite) {
+	void backgroundsyncWithRemote(final boolean overwrite) {
 		if (getRemoteClientManager().getRemoteClient().isAuthenticated()) {
 			if(!(m_pushing || m_pulling)) {
 				new AsyncPushTask(overwrite).execute();
@@ -218,8 +218,8 @@ public class TodoApplication extends Application {
 		@Override
 		protected Integer doInBackground(Void... params) {
 			try {
-				Log.d(TAG, "start taskBag.pushToRemote");
-				taskBag.pushToRemote(true, overwrite);
+				Log.d(TAG, "start taskBag.syncWithRemote");
+				taskBag.syncWithRemote(true, overwrite);
 			} catch (RemoteConflictException c) {
 				Log.e(TAG, c.getMessage());
 				return CONFLICT;
@@ -232,7 +232,7 @@ public class TodoApplication extends Application {
 
 		@Override
 		protected void onPostExecute(Integer result) {
-			Log.d(TAG, "post taskBag.pushToremote");
+			Log.d(TAG, "post taskBag.syncWithRemote");
 			m_pushing = false;
 			if (result == SUCCESS) {
 				if (pushQueue > 0) {
@@ -240,7 +240,7 @@ public class TodoApplication extends Application {
 					Log.d(TAG, "pushQueue == " + pushQueue + ". Need to push again.");
 					new AsyncPushTask(false).execute();
 				} else {
-					Log.d(TAG, "taskBag.pushToRemote done");
+					Log.d(TAG, "taskBag.syncWithRemote done");
 					setNeedToPush(false);
 					updateSyncUI(false);
 					// Push is complete. Now do a pull in case the remote
@@ -317,7 +317,7 @@ public class TodoApplication extends Application {
 				syncWithRemote(force_sync);
 			} else if (intent.getAction().equalsIgnoreCase(
 					Constants.INTENT_START_SYNC_TO_REMOTE)) {
-				pushToRemote(force_sync, overwrite);
+				syncWithRemote(force_sync, overwrite);
 			} else if (intent.getAction().equalsIgnoreCase(
 					Constants.INTENT_START_SYNC_FROM_REMOTE)) {
 				pullFromRemote(force_sync);

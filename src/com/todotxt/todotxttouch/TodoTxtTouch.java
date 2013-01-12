@@ -157,7 +157,7 @@ public class TodoTxtTouch extends ListActivity implements
 					finish();
 				} else if (intent.getAction().equalsIgnoreCase(
 						Constants.INTENT_UPDATE_UI)) {
-					updateSyncUI();
+					updateSyncUI(intent.getBooleanExtra("redrawList", false));
 				} else if (intent.getAction().equalsIgnoreCase(
 						Constants.INTENT_SYNC_CONFLICT)) {
 					handleSyncConflict();
@@ -701,8 +701,6 @@ public class TodoTxtTouch extends ListActivity implements
 	 * force an upload or download.
 	 */
 	private void handleSyncConflict() {
-		m_app.m_pushing = false;
-		m_app.m_pulling = false;
 		showDialog(SYNC_CONFLICT_DIALOG);
 	}
 
@@ -988,16 +986,18 @@ public class TodoTxtTouch extends ListActivity implements
 		openContextMenu(getListView());
 	}
 
-	private void updateSyncUI() {
-		// hide action bar
-		findViewById(R.id.actionbar).setVisibility(View.GONE);
-		// hide refresh button
+	private void updateSyncUI(boolean redrawList) {
+		// show or hide refresh button
 		findViewById(R.id.btn_title_refresh).setVisibility(
-				m_app.m_pulling || m_app.m_pushing ? View.GONE : View.VISIBLE);
-		// show moving refresh indicator
+				m_app.syncInProgress() ? View.GONE : View.VISIBLE);
+		// show or hide moving refresh indicator
 		findViewById(R.id.title_refresh_progress).setVisibility(
-				m_app.m_pulling || m_app.m_pushing ? View.VISIBLE : View.GONE);
-		setFilteredTasks(false);
+				m_app.syncInProgress() ? View.VISIBLE : View.GONE);
+		if (redrawList) {
+			// hide action bar
+			findViewById(R.id.actionbar).setVisibility(View.GONE);
+			setFilteredTasks(false);
+		}
 	}
 
 	public class TaskAdapter extends ArrayAdapter<Task> {
@@ -1083,7 +1083,8 @@ public class TodoTxtTouch extends ListActivity implements
 							.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
 				}
 
-				if (m_app.m_prefs.getBoolean("todotxtprependdate", true)) {
+				holder.taskage.setVisibility(View.GONE);
+				if (m_app.m_prefs.getBoolean("todotxtprependdate", false)) {
 					if (!task.isCompleted()
 							&& !Strings.isEmptyOrNull(task.getRelativeAge())) {
 						holder.taskage.setText(task.getRelativeAge());

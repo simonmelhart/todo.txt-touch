@@ -73,21 +73,15 @@ public interface RemoteClient {
 	boolean isLoggedIn();
 
 	/**
-	 * Pull the remote Todo.txt file
+	 * Sync mobile
 	 * 
-	 * @return
-	 */
-	PullTodoResult pullTodo();
-
-	/**
-	 * Push mobile
-	 * 
-	 * @param todoFile
-	 * @param doneFile
+	 * @param todoFile null if no changes
+	 * @param doneFile null if no changes
 	 * @param overwrite if true, upload the files even if there
 	 * 	is a remote conflict.
+	 * @return SyncTodoResult populated if changes were made, null file handles if no new info
 	 */
-	void pushTodo(File todoFile, File doneFile, boolean overwrite);
+	SyncTodoResult syncTodo(File todoFile, File doneFile, boolean overwrite);
 
 	/**
 	 * A method to check if the remote service is available (network, sd-card,

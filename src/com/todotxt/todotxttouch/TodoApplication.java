@@ -107,7 +107,7 @@ public class TodoApplication extends Application {
 	}
 
 	/**
-	 * Check network status, then push.
+	 * Check network status, then sync.
 	 */
 	private void pushToRemote(boolean force, boolean overwrite) {
 		pushQueue += 1;
@@ -122,7 +122,7 @@ public class TodoApplication extends Application {
 			Log.d(TAG, "app is pulling right now. don't start push."); 
 		} else {
 			Log.i(TAG, "Not connected, don't push now");
-			showToast(R.string.toast_notconnected);
+			//showToast(R.string.toast_notconnected);
 		}
 	}
 
@@ -145,7 +145,7 @@ public class TodoApplication extends Application {
 			Log.d(TAG, "app is pushing right now. don't start pull."); 
 		} else {
 			Log.i(TAG, "Not connected, don't pull now");
-			showToast(R.string.toast_notconnected);
+			//showToast(R.string.toast_notconnected);
 		}
 	}
 
@@ -176,11 +176,11 @@ public class TodoApplication extends Application {
 	}
 
 	public void showToast(int resid) {
-		Util.showToastLong(this, resid);
+		Util.showToastShort(this, resid);
 	}
 
 	public void showToast(String string) {
-		Util.showToastLong(this, string);
+		Util.showToastShort(this, string);
 	}
 
 	/**
@@ -272,7 +272,7 @@ public class TodoApplication extends Application {
 				protected Boolean doInBackground(Void... params) {
 					try {
 						Log.d(TAG, "start taskBag.pullFromRemote");
-						taskBag.pullFromRemote(true);
+						taskBag.syncWithRemote(true);
 					} catch (Exception e) {
 						Log.e(TAG, e.getMessage());
 						return false;

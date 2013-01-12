@@ -20,53 +20,24 @@
  * @license http://www.gnu.org/licenses/gpl.html
  * @copyright 2009-2012 Todo.txt contributors (http://todotxt.com)
  */
-package com.todotxt.todotxttouch.task;
+package com.todotxt.todotxttouch.remote;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.io.File;
 
-/**
- * Interface for interacting with the tasks in aggregate
- * 
- * @author Tim Barlotta
- */
-public interface TaskBag {
-
-	void archive();
-
-	void reload();
-
-	void addAsTask(String input);
-
-	void update(Task task);
-
-	void delete(Task task);
-
-	List<Task> getTasks();
-
-	List<Task> getTasks(Filter<Task> filter, Comparator<Task> comparator);
-
-	int size();
-
-	ArrayList<String> getProjects();
-
-	ArrayList<String> getContexts();
-
-	ArrayList<Priority> getPriorities();
-
-	/* REMOTE APIs */
-	/**
-	 * Sync tasks in localRepository with remoteRepository if you're not working
-	 * offline
-	 */
-	void syncWithRemote(boolean overwrite);
-
-	/**
-	 * Force-sync tasks in localRepository with remoteRepository disregarding
-	 * Work Offline status
-	 */
-	void syncWithRemote(boolean overridePreference, boolean overwrite);
-
-	/* END REMOTE APIs */
+public class SyncTodoResult {
+	private File todoFile;
+	private File doneFile;
+	
+	public SyncTodoResult(File todoFile, File doneFile) {
+		this.todoFile = todoFile;
+		this.doneFile = doneFile;
+	}
+	
+	public File getTodoFile() {
+		return todoFile;
+	}
+	
+	public File getDoneFile() {
+		return doneFile;
+	}
 }

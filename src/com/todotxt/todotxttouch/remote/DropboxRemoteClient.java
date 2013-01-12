@@ -23,6 +23,7 @@
 package com.todotxt.todotxttouch.remote;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import android.content.Intent;
@@ -177,13 +178,12 @@ class DropboxRemoteClient implements RemoteClient {
 		return sharedPreferences.getString(key, null);
 	}
 
-	@Override
-	public PullTodoResult pullTodo() {
+	private SyncTodoResult pullTodo() {
 		if (!isAvailable()) {
 			Log.d(TAG, "Offline. Not Pulling.");
 			Intent i = new Intent(Constants.INTENT_SET_MANUAL);
 			sendBroadcast(i);
-			return new PullTodoResult(null, null);
+			return new SyncTodoResult(null, null);
 		}
 
 		DropboxFile todoFile = new DropboxFile(
@@ -211,12 +211,14 @@ class DropboxRemoteClient implements RemoteClient {
 			storeRev(Constants.PREF_DONE_REV, doneFile.getLoadedMetadata().rev);
 		}
 
-		return new PullTodoResult(downloadedTodoFile, downloadedDoneFile);
+		return new SyncTodoResult(downloadedTodoFile, downloadedDoneFile);
 	}
 
 	@Override
-	public void pushTodo(File todoFile, File doneFile, boolean overwrite) {
+	public SyncTodoResult syncTodo(File todoFile, File doneFile, boolean overwrite) {
+		Log.d("merge", "Starting sync.");
 		ArrayList<DropboxFile> dropboxFiles = new ArrayList<DropboxFile>(2);
+
 		if (todoFile != null) {
 			dropboxFiles.add(new DropboxFile(
 					getTodoFileRemotePathAndFilename(), todoFile,
@@ -228,26 +230,62 @@ class DropboxRemoteClient implements RemoteClient {
 					getDoneFileRemotePathAndFilename(), doneFile,
 					loadRev(Constants.PREF_DONE_REV)));
 		}
+		
+		if (dropboxFiles.size() > 0) {
+			Log.d("merge", "Starting upload.");
+			// Upload (with merge if necessary)
 
-		DropboxFileUploader uploader = new DropboxFileUploader(dropboxApi,
-				dropboxFiles, overwrite);
-		uploader.pushFiles();
+			DropboxFileUploader uploader = new DropboxFileUploader(dropboxApi,
+					dropboxFiles, overwrite);
+			try {
+				uploader.pushFiles();
+			} catch (RemoteConflictException remoteException) {
+				try {
+					Log.d("merge", "Conflict; merging.");
+					// Conflict; time to merge
+					// TODO: Check on done.txt as well
+					String base = Util.readFiletoString(TODO_TXT_TMP_FILE); // left over from last sync
+					String local = Util.readFiletoString(todoFile);
+					SyncTodoResult pullResult = pullTodo(); // Get the latest version
+					String remote = Util.readFiletoString(pullResult.getTodoFile());
+					String merged = Util.threeWayMerge(base, local, remote);
+					String mergedReverse = Util.threeWayMerge(base, remote, local);
+					if (merged.compareTo(mergedReverse) != 0) {
+						Log.d("merge", "Difference:");
+						Log.v("merge", merged);
+						Log.v("merge", mergedReverse);
+					}
+					Util.writeStringToFile(merged, todoFile);
+					DropboxFileUploader mergedUploader = new DropboxFileUploader(dropboxApi,
+							dropboxFiles, true);
+					mergedUploader.pushFiles();
+					return new SyncTodoResult(todoFile, doneFile);
+				} catch (IOException e1) {
+					throw remoteException; // Rely on the old conflict error dialog
+				} 
+			}
 
-		if (uploader.getStatus() == DropboxFileStatus.SUCCESS) {
-			if (dropboxFiles.size() > 0) {
-				DropboxFile todoDropboxFile = dropboxFiles.get(0);
-				if (todoDropboxFile.getStatus() == DropboxFileStatus.SUCCESS) {
-					storeRev(Constants.PREF_TODO_REV,
-							todoDropboxFile.getLoadedMetadata().rev);
+			if (uploader.getStatus() == DropboxFileStatus.SUCCESS) {
+				if (dropboxFiles.size() > 0) {
+					DropboxFile todoDropboxFile = dropboxFiles.get(0);
+					if (todoDropboxFile.getStatus() == DropboxFileStatus.SUCCESS) {
+						storeRev(Constants.PREF_TODO_REV,
+								todoDropboxFile.getLoadedMetadata().rev);
+					}
+				}
+				if (dropboxFiles.size() > 1) {
+					DropboxFile doneDropboxFile = dropboxFiles.get(1);
+					if (doneDropboxFile.getStatus() == DropboxFileStatus.SUCCESS) {
+						storeRev(Constants.PREF_DONE_REV,
+								doneDropboxFile.getLoadedMetadata().rev);
+					}
 				}
 			}
-			if (dropboxFiles.size() > 1) {
-				DropboxFile doneDropboxFile = dropboxFiles.get(1);
-				if (doneDropboxFile.getStatus() == DropboxFileStatus.SUCCESS) {
-					storeRev(Constants.PREF_DONE_REV,
-							doneDropboxFile.getLoadedMetadata().rev);
-				}
-			}
+			return new SyncTodoResult(null, null);
+		} else {
+			Log.d("merge", "Pulling.");
+
+			return pullTodo();
 		}
 	}
 

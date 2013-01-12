@@ -716,19 +716,13 @@ public class TodoTxtTouch extends ListActivity implements
 	 *            true to force pull
 	 */
 	private void syncClient(boolean force) {
-		if (isManualMode()) {
-			Log.v(TAG,
-					"Manual mode, choice forced; prompt user to ask which way to sync");
-			showDialog(SYNC_CHOICE_DIALOG);
-		} else {
-			Log.i(TAG, "auto sync mode; should automatically sync; force = "
-					+ force);
-			Intent i = new Intent(Constants.INTENT_START_SYNC_WITH_REMOTE);
-			if (force) {
-				i.putExtra(Constants.EXTRA_FORCE_SYNC, true);
-			}
-			sendBroadcast(i);
+		Log.i(TAG, "auto sync mode; should automatically sync; force = "
+				+ force);
+		Intent i = new Intent(Constants.INTENT_START_SYNC_WITH_REMOTE);
+		if (force) {
+			i.putExtra(Constants.EXTRA_FORCE_SYNC, true);
 		}
+		sendBroadcast(i);
 	}
 
 	private boolean isManualMode() {

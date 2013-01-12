@@ -34,7 +34,7 @@ import java.util.Set;
 
 import android.content.SharedPreferences;
 
-import com.todotxt.todotxttouch.remote.PullTodoResult;
+import com.todotxt.todotxttouch.remote.SyncTodoResult;
 import com.todotxt.todotxttouch.remote.RemoteClientManager;
 import com.todotxt.todotxttouch.util.TaskIo;
 
@@ -177,37 +177,25 @@ class TaskBagImpl implements TaskBag {
 
 	/* REMOTE APIS */
 	@Override
-	public void pushToRemote(boolean overwrite) {
-		pushToRemote(false, overwrite);
+	public void syncWithRemote(boolean overwrite) {
+		syncWithRemote(false, overwrite);
 	}
 
 	@Override
-	public void pushToRemote(boolean overridePreference, boolean overwrite) {
-		if (!this.preferences.isWorkOfflineEnabled() || overridePreference) {
-			File doneFile = null;
-			if (localRepository.doneFileModifiedSince(lastSync)) {
-				doneFile = LocalFileTaskRepository.DONE_TXT_FILE;
-			}
-			remoteClientManager.getRemoteClient().pushTodo(
-					LocalFileTaskRepository.TODO_TXT_FILE,
-					doneFile,
-					overwrite);
-			lastSync = new Date();
-		}
-	}
-
-	@Override
-	public void pullFromRemote() {
-		pullFromRemote(false);
-	}
-
-	@Override
-	public void pullFromRemote(boolean overridePreference) {
+	public void syncWithRemote(boolean overridePreference, boolean overwrite) {
 		try {
 			if (!this.preferences.isWorkOfflineEnabled() || overridePreference) {
-				PullTodoResult result = remoteClientManager.getRemoteClient()
-						.pullTodo();
-				File todoFile = result.getTodoFile();
+				File todoFile = null;
+				if (localRepository.todoFileModifiedSince(lastSync)) {
+					todoFile = LocalFileTaskRepository.TODO_TXT_FILE;
+				}
+				File doneFile = null;
+				if (localRepository.doneFileModifiedSince(lastSync)) {
+					doneFile = LocalFileTaskRepository.DONE_TXT_FILE;
+				}
+				SyncTodoResult result = remoteClientManager.getRemoteClient()
+						.syncTodo(todoFile, doneFile, overwrite);
+				todoFile = result.getTodoFile();
 				if (todoFile != null && todoFile.exists()) {
 					ArrayList<Task> remoteTasks = TaskIo
 							.loadTasksFromFile(todoFile);
@@ -215,7 +203,7 @@ class TaskBagImpl implements TaskBag {
 					reload();
 				}
 				
-				File doneFile = result.getDoneFile();
+				doneFile = result.getDoneFile();
 				if (doneFile != null && doneFile.exists()) {
 					localRepository.loadDoneTasks(doneFile);
 				}

@@ -22,12 +22,22 @@
  */
 package com.todotxt.todotxttouch.util;
 
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import name.fraser.neil.plaintext.diff_match_patch;
+import name.fraser.neil.plaintext.diff_match_patch.Diff;
+import name.fraser.neil.plaintext.diff_match_patch.Patch;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -57,6 +67,7 @@ import android.widget.Toast;
 
 import com.todotxt.todotxttouch.R;
 import com.todotxt.todotxttouch.TodoException;
+import com.todotxt.todotxttouch.remote.RemoteConflictException;
 
 public class Util {
 
@@ -386,6 +397,76 @@ public class Util {
 				.getSystemService(Context.CONNECTIVITY_SERVICE);
 		return cm.getActiveNetworkInfo() != null
 				&& cm.getActiveNetworkInfo().isConnected();
+	}
+	
+	public static String threeWayMerge(String base, String local, String remote) {
+		String merged;
+		diff_match_patch dmp = new diff_match_patch();
+		// TODO: Set appropriate configuration values
+		dmp.Patch_DeleteThreshold = 0.2f;
+		dmp.Match_Distance = 100;
+		LinkedList<Diff> diffs = dmp.diff_main(base, local);
+		dmp.diff_cleanupSemantic(diffs);
+		LinkedList<Patch> patches = dmp.patch_make(base, diffs);
+		merged = (String) dmp.patch_apply(patches, remote)[0];
+		// One-off fix for the common scenario of marking a task complete in both files
+		// This might be a little ambitious; a speedier but less accurate approach would
+		// be to use simple character sequences.
+		Pattern twiceCompletedPattern = Pattern.compile("^x (?:[-0-9]{1,10} )?x ", Pattern.MULTILINE);
+		Matcher m = twiceCompletedPattern.matcher(merged);
+		merged = m.replaceAll("x ");
+
+		// If the merge goes ballistic and/or the files are totally different, show
+		// the old conflict dialog
+
+		// Use line count as a heuristic
+		int localLinesCount  = Util.countLinesInString(local);
+		int remoteLinesCount = Util.countLinesInString(remote);
+		int mergedLinesCount = Util.countLinesInString(merged);
+		
+		Log.v("merge", "Diffs: \n" + dmp.diff_toDelta(diffs));
+
+		if (mergedLinesCount
+				> Math.max(localLinesCount, remoteLinesCount)) {
+			Log.d("merge",
+					String.format("Error: %d lines in merge from files of length %d and %d",
+							mergedLinesCount, localLinesCount, remoteLinesCount));
+			Log.v("merge", "--- New Merge ---");
+			Log.v("merge", "Base:  \n" + local );
+			Log.v("merge", "Local:  \n" + local );
+			Log.v("merge", "Remote: \n" + remote);
+			Log.v("merge", "Diffs: \n" + dmp.diff_toDelta(diffs));
+			Log.v("merge", "Patches: \n" + patches.toString());
+			Log.v("merge", "Merged: \n" + merged);
+			boolean[] resultsArray = (boolean[]) dmp.patch_apply(patches, remote)[1];
+			Log.v("merge", "Results: \n" + resultsArray.toString());
+			
+
+			throw new RemoteConflictException(
+					"Merged file is too long; not enough commonality in local and remote lists.");
+		}
+		return merged;
+	}
+	
+	public static String readFiletoString(File file) throws FileNotFoundException {
+		InputStream is = new FileInputStream(file);
+		return readStream(is);
+	}
+
+	public static void writeStringToFile(String str, File file) throws IOException {
+		InputStream is = new ByteArrayInputStream(str.getBytes("ISO-8859-1"));
+		writeFile(is, file);
+	}
+	
+	public static int countLinesInString(String s) {
+		int count = 1;
+		int length = s.length();
+		for (int i = 0; i < length; i++) {
+			if (s.charAt(i) == '\n') {
+				count++;
+			}
+		}
+		return count;
 	}
 
 }

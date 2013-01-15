@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -401,14 +402,30 @@ public class Util {
 	
 	public static String threeWayMerge(String base, String local, String remote) {
 		String merged;
+		boolean mergeSucceeded = true;
+
 		diff_match_patch dmp = new diff_match_patch();
 		// TODO: Set appropriate configuration values
-		dmp.Patch_DeleteThreshold = 0.2f;
-		dmp.Match_Distance = 100;
+		dmp.Patch_DeleteThreshold = 0.3f;
+		dmp.Match_Distance = 200;
 		LinkedList<Diff> diffs = dmp.diff_main(base, local);
 		dmp.diff_cleanupSemantic(diffs);
 		LinkedList<Patch> patches = dmp.patch_make(base, diffs);
-		merged = (String) dmp.patch_apply(patches, remote)[0];
+		Object[] patch_results = dmp.patch_apply(patches, remote);
+		merged = (String) patch_results[0];
+		boolean[] resultsArray = (boolean[]) patch_results[1];
+		// If there is at least one diff, at least one must apply correctly to count as a successful patch.
+		if (resultsArray.length > 0) {
+			boolean patchSucceeded = false;
+			for (int i = 0; i < resultsArray.length; i++) {
+				if (resultsArray[i] == true) {
+					patchSucceeded = true;
+					break;
+				}
+			}
+			mergeSucceeded &= patchSucceeded;
+		}
+		
 		// One-off fix for the common scenario of marking a task complete in both files
 		// This might be a little ambitious; a speedier but less accurate approach would
 		// be to use simple character sequences.
@@ -419,28 +436,31 @@ public class Util {
 		// If the merge goes ballistic and/or the files are totally different, show
 		// the old conflict dialog
 
+		// TODO
+		
 		// Use line count as a heuristic
+		int baseLinesCount  = Util.countLinesInString(base);
 		int localLinesCount  = Util.countLinesInString(local);
 		int remoteLinesCount = Util.countLinesInString(remote);
 		int mergedLinesCount = Util.countLinesInString(merged);
-		
-		Log.v("merge", "Diffs: \n" + dmp.diff_toDelta(diffs));
 
-		if (mergedLinesCount
-				> Math.max(localLinesCount, remoteLinesCount)) {
-			Log.d("merge",
-					String.format("Error: %d lines in merge from files of length %d and %d",
-							mergedLinesCount, localLinesCount, remoteLinesCount));
-			Log.v("merge", "--- New Merge ---");
+		// Throw an exception if the merged file has a bigger increase
+		// than both the local and remote files combined, as compared with
+		// the base file.
+		mergeSucceeded &= (mergedLinesCount <= localLinesCount + remoteLinesCount - baseLinesCount);
+		Log.w("merge",
+				String.format("Merge warning: %d lines in merge from files: %d (base) -> %d (local) and %d (remote)",
+						mergedLinesCount, baseLinesCount, localLinesCount, remoteLinesCount));
+
+		if (!mergeSucceeded) {
+			Log.v("merge", "--- Merge problem; info follows ---");
 			Log.v("merge", "Base:  \n" + local );
 			Log.v("merge", "Local:  \n" + local );
 			Log.v("merge", "Remote: \n" + remote);
-			Log.v("merge", "Diffs: \n" + dmp.diff_toDelta(diffs));
+			Log.v("merge", "Diffs: \n" + diffs.toString());
 			Log.v("merge", "Patches: \n" + patches.toString());
 			Log.v("merge", "Merged: \n" + merged);
-			boolean[] resultsArray = (boolean[]) dmp.patch_apply(patches, remote)[1];
-			Log.v("merge", "Results: \n" + resultsArray.toString());
-			
+			Log.v("merge", "Results: \n" + Arrays.toString(resultsArray));
 
 			throw new RemoteConflictException(
 					"Merged file is too long; not enough commonality in local and remote lists.");

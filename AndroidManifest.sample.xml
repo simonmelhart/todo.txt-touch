@@ -2,7 +2,7 @@
 <!--
 This file is part of Todo.txt Touch, an Android app for managing your todo.txt file (http://todotxt.com).
 
-Copyright (c) 2009-2012 Todo.txt contributors (http://todotxt.com)
+Copyright (c) 2009-2013 Todo.txt contributors (http://todotxt.com)
 
 LICENSE:
 
@@ -19,15 +19,15 @@ You should have received a copy of the GNU General Public License along with Tod
 
 @author Todo.txt contributors <todotxt@yahoogroups.com>
 @license http://www.gnu.org/licenses/gpl.html
-@copyright 2009-2012 Todo.txt contributors (http://todotxt.com)
+@copyright 2009-2013 Todo.txt contributors (http://todotxt.com)
 -->
 <manifest package="com.todotxt.todotxttouch"
-    android:versionCode="32"
-    android:versionName="1.0.2" xmlns:android="http://schemas.android.com/apk/res/android">
+    android:versionCode="34"
+    android:versionName="1.1.1" xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-sdk
         android:minSdkVersion="4"
-        android:targetSdkVersion="4" />
+        android:targetSdkVersion="14" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -44,17 +44,21 @@ You should have received a copy of the GNU General Public License along with Tod
 
     <application
         android:name=".TodoApplication"
-        android:debuggable="true"
         android:icon="@drawable/todotxt_touch_icon"
-        android:label="@string/app_label" >
+        android:label="@string/app_label" android:theme="@style/Theme.TodoTxt">
          <activity
             android:name="com.dropbox.client2.android.AuthActivity"
             android:configChanges="orientation|keyboard"
             android:launchMode="singleTask" >
             <intent-filter>
 
-                <!-- Change this to be db- followed by your app key -->
-                <data android:scheme="db-PUT-APP-KEY-HERE" />
+                <!-- For Android 1.6 compatibility, we cannot reference a string resource here 
+                On 1.6, when auth'ing to Dropbox, it throws a 
+                java.lang.IllegalStateException: URL scheme in your app's manifest is not set up correctly.
+                <data android:scheme="@string/dropbox_consumer_key" />
+                -->
+				<!-- Change this to be db- followed by your Dropbox app key -->
+				 <data android:scheme="db-PUT-APP-KEY-HERE" />
 
                 <action android:name="android.intent.action.VIEW" />
 
@@ -119,8 +123,7 @@ You should have received a copy of the GNU General Public License along with Tod
             android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
         <activity
             android:name=".TodoTxtTouch"
-            android:configChanges="keyboardHidden|orientation"
-            android:theme="@android:style/Theme.NoTitleBar" >
+            android:configChanges="keyboardHidden|orientation" >
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>

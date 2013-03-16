@@ -1,7 +1,7 @@
 /**
  * This file is part of Todo.txt Touch, an Android app for managing your todo.txt file (http://todotxt.com).
  *
- * Copyright (c) 2009-2012 Todo.txt contributors (http://todotxt.com)
+ * Copyright (c) 2009-2013 Todo.txt contributors (http://todotxt.com)
  *
  * LICENSE:
  *
@@ -18,7 +18,7 @@
  *
  * @author Todo.txt contributors <todotxt@yahoogroups.com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2012 Todo.txt contributors (http://todotxt.com)
+ * @copyright 2009-2013 Todo.txt contributors (http://todotxt.com)
  */
 package com.todotxt.todotxttouch;
 
@@ -175,7 +175,7 @@ public class AddTask extends Activity {
 
 		// projects
 		projects = (Spinner) findViewById(R.id.projects);
-		final ArrayList<String> projectsArr = taskBag.getProjects();
+		final ArrayList<String> projectsArr = taskBag.getProjects(false);
 		projectsArr.add(0,this.getApplicationContext().getString(R.string.add_task_project_btn));
 		projects.setAdapter(Util.newSpinnerAdapter(this, projectsArr));
 		
@@ -213,7 +213,7 @@ public class AddTask extends Activity {
 
 		// contexts
 		contexts = (Spinner) findViewById(R.id.contexts);
-		final ArrayList<String> contextsArr = taskBag.getContexts();
+		final ArrayList<String> contextsArr = taskBag.getContexts(false);
 		contextsArr.add(0, this.getApplicationContext().getString(R.string.add_task_context_btn));
 		contexts.setAdapter(Util.newSpinnerAdapter(this, contextsArr));
 		

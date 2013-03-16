@@ -2,7 +2,7 @@
 <!--
 This file is part of Todo.txt Touch, an Android app for managing your todo.txt file (http://todotxt.com).
 
-Copyright (c) 2009-2012 Todo.txt contributors (http://todotxt.com)
+Copyright (c) 2009-2013 Todo.txt contributors (http://todotxt.com)
 
 LICENSE:
 
@@ -19,12 +19,12 @@ You should have received a copy of the GNU General Public License along with Tod
 
 @author Todo.txt contributors <todotxt@yahoogroups.com>
 @license http://www.gnu.org/licenses/gpl.html
-@copyright 2009-2012 Todo.txt contributors (http://todotxt.com)
+@copyright 2009-2013 Todo.txt contributors (http://todotxt.com)
 -->
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
-    <string name="app_label">Todo.txt Touch</string>
+    <string name="app_label">Todo.txt</string>
     <string name="added_task">Added task</string>
     <string name="add_task_failed">Could not add task</string>
     <string name="updated_task">Updated task</string>
@@ -52,7 +52,7 @@ You should have received a copy of the GNU General Public License along with Tod
     <string name="close">Close</string>
     <string name="clear">Clear</string>
     <string name="areyousure">Are you sure?</string>
-    <string name="tasktexthint">Call Mom @phone +FamilialPeace\n\n</string>
+    <string name="tasktexthint">Draft chapter 1 +Novel @typewriter\n\n</string>
     <string name="add_task_help"><b>Projects</b> start with a + sign and contain no spaces, like +KitchenRemodel or
 		+Novel.\n\n<b>Contexts</b> (where you will complete a task) start with an @ sign, like @phone or
 		@GroceryStore.\n\n
@@ -101,9 +101,8 @@ You should have received a copy of the GNU General Public License along with Tod
     <string name="sync_conflict_dialog_title">File Conflict</string>
     <string name="sync_conflict_dialog_msg">Oops! There is a newer version of your todo.txt file in Dropbox. \nDo you want to upload your local changes, or download the Dropbox version?</string>
     <!-- login -->
-    <string name="first_title_word">Todo.txt</string>
-    <string name="second_title_word">Touch</string>
-    <string name="login_screen_button">Log in to Dropbox</string>
+    <string name="welcome_message">Welcome to Todo.txt</string>
+    <string name="login_screen_button">Connect to Dropbox</string>
     <!-- delete -->
     <string name="delete_task_title">Delete Task</string>
     <string name="delete_task_message">This cannot be undone. Are you sure?</string>
